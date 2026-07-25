@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Life Expectancy Predictor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400&display=swap');
+
+:root{
+  --bg:      #f5f3ee;
+  --surface: #ffffff;
+  --ink:     #1c1a17;
+  --muted:   #8c8880;
+  --border:  #dedad3;
+  --accent:  #2d6a4f;
+  --acc-lt:  #d8eee4;
+  --warn:    #b5622a;
+  --warn-lt: #fdeee4;
+  --danger:  #9b2226;
+  --sans:    'Fraunces', Georgia, serif;
+  --mono:    'DM Mono', monospace;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65}
+
+/* ── Shell ── */
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px 100px}
+
+/* ── Hero ── */
+.hero{padding:56px 0 40px;border-bottom:1px solid var(--border);margin-bottom:48px}
+.hero-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.hero h1{font-size:clamp(32px,5vw,52px);font-weight:300;letter-spacing:-.02em;line-height:1.1;font-style:italic}
+.hero h1 strong{font-style:normal;font-weight:600}
+.hero-sub{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;max-width:520px}
+
+/* ── Section headings ── */
+.sec-label{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-bottom:20px}
+
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);padding:28px 32px;margin-bottom:24px}
+
+/* ── Form grid ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+
+.field{display:flex;flex-direction:column;gap:6px;padding:16px 20px 16px 0;border-bottom:1px solid var(--border)}
+.field:nth-child(even){padding-left:24px;padding-right:0;border-left:1px solid var(--border)}
+.field:nth-last-child(-n+2){border-bottom:none}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{
+  border:none;border-bottom:1px solid var(--border);
+  background:transparent;padding:8px 0;
+  font-family:var(--sans);font-size:15px;color:var(--ink);
+  outline:none;transition:border-color .2s;
+  -webkit-appearance:none;appearance:none;
+  border-radius:0;
+}
+.field input:focus,.field select:focus{border-bottom-color:var(--ink)}
+.field select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238c8880'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center}
+
+/* Checkbox fields */
+.check-group{display:flex;flex-direction:column;gap:8px;padding-top:4px}
+.check-item{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px}
+.check-item input[type=checkbox]{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
+
+/* ── Submit ── */
+.submit-wrap{margin-top:28px;display:flex;align-items:center;gap:20px}
+.btn-predict{
+  background:var(--ink);color:var(--bg);
+  border:none;padding:14px 40px;
+  font-family:var(--sans);font-size:15px;font-weight:400;letter-spacing:.02em;
+  cursor:pointer;transition:opacity .2s;
+  font-style:italic;
+}
+.btn-predict:hover{opacity:.8}
+.btn-predict:disabled{opacity:.4;cursor:not-allowed}
+.submit-note{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em}
+
+/* ── Loading ── */
+.loading{display:none;align-items:center;gap:12px;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;margin-top:20px}
+.loading.active{display:flex}
+.spin{width:16px;height:16px;border:1px solid var(--border);border-top-color:var(--ink);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Results panel ── */
+#results{display:none;animation:fadeup .5s ease}
+@keyframes fadeup{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+/* Big number */
+.result-hero{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:24px}
+.result-num-block{background:var(--surface);padding:32px;display:flex;flex-direction:column;gap:6px}
+.result-num-block .big{font-size:clamp(52px,7vw,80px);font-weight:600;letter-spacing:-.04em;line-height:1}
+.result-num-block .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.result-num-block .sub{font-size:13px;color:var(--muted);margin-top:4px}
+.big.good{color:var(--accent)}
+.big.avg{color:var(--warn)}
+.big.poor{color:var(--danger)}
+
+/* Life bar */
+.lifebar-wrap{background:var(--surface);border:1px solid var(--border);padding:28px 32px;margin-bottom:24px}
+.lifebar-track{height:6px;background:var(--border);border-radius:3px;margin:16px 0 8px;overflow:hidden;position:relative}
+.lifebar-lived{position:absolute;left:0;top:0;height:100%;background:var(--muted);border-radius:3px;transition:width .8s ease}
+.lifebar-remaining{position:absolute;top:0;height:100%;background:var(--accent);border-radius:3px;transition:width .8s ease,left .8s ease}
+.lifebar-labels{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em}
+
+/* Health score */
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);margin-bottom:24px}
+.score-block{background:var(--surface);padding:24px;text-align:center}
+.score-ring{width:72px;height:72px;margin:0 auto 12px;position:relative}
+.score-ring svg{transform:rotate(-90deg)}
+.score-ring .ring-bg{fill:none;stroke:var(--border);stroke-width:5}
+.score-ring .ring-fill{fill:none;stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .9s ease;stroke:var(--accent)}
+.score-ring .ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:400}
+.score-name{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* Factors */
+.factors-list{display:flex;flex-direction:column;gap:0}
+.factor-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--border)}
+.factor-row:last-child{border-bottom:none}
+.factor-left{display:flex;flex-direction:column;gap:4px}
+.factor-name{font-size:14px}
+.factor-cat{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.factor-bar-wrap{display:flex;align-items:center;gap:10px}
+.factor-track{width:120px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.factor-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .7s ease}
+.factor-delta{font-family:var(--mono);font-size:11px;color:var(--accent);white-space:nowrap}
+
+/* Summary list */
+.summary-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border)}
+.sum-cell{background:var(--surface);padding:16px 20px}
+.sum-cell .sk{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.sum-cell .sv{font-size:14px}
+
+/* ── Responsive ── */
+@media(max-width:700px){
+  .form-grid{grid-template-columns:1fr}
+  .field:nth-child(even){padding-left:0;border-left:none}
+  .field:nth-last-child(-n+2){border-bottom:1px solid var(--border)}
+  .field:last-child{border-bottom:none}
+  .result-hero,.score-grid,.summary-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">Data Science · Predictive Health Analysis</div>
+    <h1>Your <strong>Life Expectancy</strong><br>Prediction</h1>
+    <div class="hero-sub">Enter your personal health &amp; lifestyle details below to receive a personalised life expectancy estimate and actionable improvement insights.</div>
+  </div>
+
+  <!-- ── INPUT FORM ── -->
+  <div class="sec-label">Personal Details</div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Current Age (years)</label>
+        <input type="number" id="age" min="18" max="100" value="35" placeholder="e.g. 35"/>
+      </div>
+      <div class="field">
+        <label>Biological Sex</label>
+        <select id="gender">
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="other">Other / Prefer not to say</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>BMI (Body Mass Index)</label>
+        <input type="number" id="bmi" min="10" max="60" step="0.1" value="24.0" placeholder="e.g. 24.0"/>
+      </div>
+      <div class="field">
+        <label>Systolic Blood Pressure (mmHg)</label>
+        <input type="number" id="systolic_bp" min="80" max="220" value="120" placeholder="e.g. 120"/>
+      </div>
+
+      <div class="field">
+        <label>Total Cholesterol (mg/dL)</label>
+        <input type="number" id="cholesterol" min="100" max="400" value="190" placeholder="e.g. 190"/>
+      </div>
+      <div class="field">
+        <label>Fasting Blood Sugar (mg/dL)</label>
+        <input type="number" id="blood_sugar" min="50" max="400" value="90" placeholder="e.g. 90"/>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sec-label">Lifestyle Habits</div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Smoking Status</label>
+        <select id="smoking">
+          <option value="never">Never smoked</option>
+          <option value="former">Former smoker</option>
+          <option value="light">Light smoker (< 10/day)</option>
+          <option value="heavy">Heavy smoker (10+/day)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Alcohol Consumption</label>
+        <select id="alcohol">
+          <option value="none">None</option>
+          <option value="moderate" selected>Moderate (1–2 drinks/day)</option>
+          <option value="heavy">Heavy (3+ drinks/day)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Physical Exercise</label>
+        <select id="exercise">
+          <option value="none">Sedentary / No exercise</option>
+          <option value="light">Light (1–2 days/week)</option>
+          <option value="moderate" selected>Moderate (3–4 days/week)</option>
+          <option value="intense">Intense (5+ days/week)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Diet Quality</label>
+        <select id="diet">
+          <option value="poor">Poor (processed, fast food)</option>
+          <option value="average" selected>Average</option>
+          <option value="good">Good (balanced, mostly whole foods)</option>
+          <option value="excellent">Excellent (whole foods, plant-rich)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Stress Level</label>
+        <select id="stress">
+          <option value="low">Low</option>
+          <option value="moderate" selected>Moderate</option>
+          <option value="high">High</option>
+          <option value="very_high">Very High / Chronic</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Average Sleep per Night</label>
+        <select id="sleep">
+          <option value="less_5">Less than 5 hours</option>
+          <option value="5_6">5–6 hours</option>
+          <option value="7_8" selected>7–8 hours (recommended)</option>
+          <option value="more_9">More than 9 hours</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sec-label">Medical History &amp; Background</div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="form-grid">
+
+      <div class="field">
+        <label>Medical Conditions</label>
+        <div class="check-group">
+          <label class="check-item"><input type="checkbox" id="diabetes"/> Diagnosed with Diabetes</label>
+          <label class="check-item"><input type="checkbox" id="heart_disease"/> Heart Disease / CVD</label>
+          <label class="check-item"><input type="checkbox" id="hypertension"/> Hypertension</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Family &amp; Socioeconomic</label>
+        <div class="check-group">
+          <label class="check-item"><input type="checkbox" id="family_longevity"/> Family history of longevity (80+)</label>
+        </div>
+        <div style="margin-top:16px">
+          <label style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">Income Level</label>
+          <select id="income_level" style="border:none;border-bottom:1px solid var(--border);background:transparent;padding:8px 0;font-family:var(--sans);font-size:15px;color:var(--ink);outline:none;width:100%;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%238c8880\'/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 4px center;cursor:pointer">
+            <option value="1">Low</option>
+            <option value="2">Lower-middle</option>
+            <option value="3" selected>Middle</option>
+            <option value="4">Upper-middle</option>
+            <option value="5">High</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="border-bottom:none">
+        <label>Years of Education</label>
+        <input type="number" id="education_years" min="0" max="30" value="14" placeholder="e.g. 16"/>
+      </div>
+      <div class="field" style="border-bottom:none;border-left:1px solid var(--border);padding-left:24px">
+        <label>Height (cm) — for BMI reference</label>
+        <input type="number" id="height_ref" min="100" max="250" value="170" placeholder="e.g. 170" oninput="updateBmiHint()"/>
+        <label style="margin-top:8px">Weight (kg) — for BMI reference</label>
+        <input type="number" id="weight_ref" min="30" max="300" value="70" placeholder="e.g. 70" oninput="updateBmiHint()"/>
+        <div id="bmi-hint" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="submit-wrap">
+    <button class="btn-predict" id="predict-btn" onclick="runPrediction()">Analyse My Life Expectancy</button>
+    <div class="submit-note">Estimates are based on statistical modelling &amp; population data</div>
+  </div>
+  <div class="loading" id="loading"><div class="spin"></div> Calculating your prediction…</div>
+
+  <!-- ── RESULTS ── -->
+  <div id="results">
+
+    <div style="height:56px"></div>
+    <div style="border-top:1px solid var(--border);padding-top:40px;margin-bottom:32px">
+      <div class="sec-label">Your Results</div>
+    </div>
+
+    <!-- Big numbers -->
+    <div class="result-hero">
+      <div class="result-num-block">
+        <div class="lbl">Estimated Life Expectancy</div>
+        <div class="big" id="res-age">—</div>
+        <div class="sub">years of total lifespan</div>
+      </div>
+      <div class="result-num-block">
+        <div class="lbl">Estimated Years Remaining</div>
+        <div class="big" id="res-left" style="color:var(--accent)">—</div>
+        <div class="sub" id="res-sub">based on your current age</div>
+      </div>
+    </div>
+
+    <!-- Life bar -->
+    <div class="lifebar-wrap">
+      <div class="sec-label" style="margin-bottom:8px">Life Timeline</div>
+      <div class="lifebar-track">
+        <div class="lifebar-lived" id="bar-lived" style="width:0%"></div>
+        <div class="lifebar-remaining" id="bar-remaining" style="left:0%;width:0%"></div>
+      </div>
+      <div class="lifebar-labels">
+        <span>Birth</span>
+        <span id="bar-now-label"></span>
+        <span id="bar-end-label"></span>
+      </div>
+    </div>
+
+    <!-- Health scores -->
+    <div class="sec-label">Health Score Breakdown</div>
+    <div class="score-grid" style="margin-bottom:24px">
+      <div class="score-block">
+        <div class="score-ring">
+          <svg viewBox="0 0 72 72" width="72" height="72">
+            <circle class="ring-bg" cx="36" cy="36" r="30"/>
+            <circle class="ring-fill" id="ring-overall" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+          </svg>
+          <div class="ring-text" id="score-overall">—</div>
+        </div>
+        <div class="score-name">Overall Score</div>
+      </div>
+      <div class="score-block">
+        <div class="score-ring">
+          <svg viewBox="0 0 72 72" width="72" height="72">
+            <circle class="ring-bg" cx="36" cy="36" r="30"/>
+            <circle class="ring-fill" id="ring-lifestyle" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+          </svg>
+          <div class="ring-text" id="score-lifestyle">—</div>
+        </div>
+        <div class="score-name">Lifestyle</div>
+      </div>
+      <div class="score-block">
+        <div class="score-ring">
+          <svg viewBox="0 0 72 72" width="72" height="72">
+            <circle class="ring-bg" cx="36" cy="36" r="30"/>
+            <circle class="ring-fill" id="ring-physical" cx="36" cy="36" r="30" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+          </svg>
+          <div class="ring-text" id="score-physical">—</div>
+        </div>
+        <div class="score-name">Physical Health</div>
+      </div>
+    </div>
+
+    <!-- Improvement factors -->
+    <div class="sec-label">Top Improvements You Can Make</div>
+    <div class="card" style="padding:0 28px">
+      <div class="factors-list" id="factors-list"></div>
+      <div id="no-factors" style="display:none;padding:24px 0;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.06em">Your inputs are already optimised — excellent health habits detected.</div>
+    </div>
+
+    <!-- Input summary -->
+    <div style="margin-top:24px">
+      <div class="sec-label">Input Summary</div>
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="margin-top:32px;padding:20px;border:1px solid var(--border);background:var(--surface)">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Important Disclaimer</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7">This tool uses a machine learning model trained on synthetic population data for educational purposes only. It does not constitute medical advice. Results should not replace consultation with qualified healthcare professionals. Many factors affecting lifespan cannot be captured in a simple model.</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function updateBmiHint() {
+  const h = parseFloat(document.getElementById('height_ref').value);
+  const w = parseFloat(document.getElementById('weight_ref').value);
+  if (h > 0 && w > 0) {
+    const bmi = (w / ((h/100)**2)).toFixed(1);
+    document.getElementById('bmi-hint').textContent = `Calculated BMI: ${bmi}`;
+    document.getElementById('bmi').value = bmi;
+  }
+}
+updateBmiHint();
+
+function collectData() {
+  return {
+    age:             parseFloat(document.getElementById('age').value),
+    gender:          document.getElementById('gender').value,
+    bmi:             parseFloat(document.getElementById('bmi').value),
+    smoking:         document.getElementById('smoking').value,
+    alcohol:         document.getElementById('alcohol').value,
+    exercise:        document.getElementById('exercise').value,
+    diet:            document.getElementById('diet').value,
+    stress:          document.getElementById('stress').value,
+    sleep:           document.getElementById('sleep').value,
+    systolic_bp:     parseFloat(document.getElementById('systolic_bp').value),
+    cholesterol:     parseFloat(document.getElementById('cholesterol').value),
+    blood_sugar:     parseFloat(document.getElementById('blood_sugar').value),
+    diabetes:        document.getElementById('diabetes').checked ? 1 : 0,
+    heart_disease:   document.getElementById('heart_disease').checked ? 1 : 0,
+    hypertension:    document.getElementById('hypertension').checked ? 1 : 0,
+    family_longevity:document.getElementById('family_longevity').checked ? 1 : 0,
+    income_level:    parseFloat(document.getElementById('income_level').value),
+    education_years: parseFloat(document.getElementById('education_years').value),
+  };
+}
+
+function setRing(id, pct) {
+  const circ = 188.5;
+  const offset = circ - (pct / 100 * circ);
+  const el = document.getElementById(id);
+  el.style.strokeDashoffset = offset;
+  const color = pct >= 70 ? '#2d6a4f' : pct >= 45 ? '#b5622a' : '#9b2226';
+  el.style.stroke = color;
+}
+
+async function runPrediction() {
+  const btn = document.getElementById('predict-btn');
+  const loading = document.getElementById('loading');
+  btn.disabled = true;
+  loading.classList.add('active');
+  document.getElementById('results').style.display = 'none';
+
+  try {
+    const data = collectData();
+    const resp = await fetch('/api/predict/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data),
+    });
+    const r = await resp.json();
+    if (r.error) { alert('Error: ' + r.error); return; }
+    renderResults(r, data);
+  } catch(e) {
+    alert('Request failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    loading.classList.remove('active');
+  }
+}
+
+function renderResults(r, data) {
+  const { predicted_age, years_left, current_age, factors, health_score } = r;
+
+  // Big numbers
+  const ageEl = document.getElementById('res-age');
+  ageEl.textContent = predicted_age;
+  ageEl.className = 'big ' + (predicted_age >= 80 ? 'good' : predicted_age >= 70 ? 'avg' : 'poor');
+  document.getElementById('res-left').textContent = years_left;
+  document.getElementById('res-sub').textContent = `from your current age of ${current_age}`;
+
+  // Life bar
+  const livedPct   = Math.min(100, current_age / predicted_age * 100);
+  const remainPct  = Math.min(100, years_left / predicted_age * 100);
+  document.getElementById('bar-lived').style.width     = livedPct + '%';
+  document.getElementById('bar-remaining').style.left  = livedPct + '%';
+  document.getElementById('bar-remaining').style.width = remainPct + '%';
+  document.getElementById('bar-now-label').textContent = `Now (age ${current_age})`;
+  document.getElementById('bar-end-label').textContent = `Est. ${predicted_age} yrs`;
+
+  // Health rings
+  setTimeout(() => {
+    setRing('ring-overall',    health_score.total);
+    setRing('ring-lifestyle',  health_score.breakdown.Lifestyle);
+    setRing('ring-physical',   health_score.breakdown.Physical);
+    document.getElementById('score-overall').textContent   = health_score.total + '%';
+    document.getElementById('score-lifestyle').textContent = health_score.breakdown.Lifestyle + '%';
+    document.getElementById('score-physical').textContent  = health_score.breakdown.Physical  + '%';
+  }, 100);
+
+  // Factors
+  const fl = document.getElementById('factors-list');
+  const nf = document.getElementById('no-factors');
+  fl.innerHTML = '';
+  if (!factors.length) {
+    nf.style.display = 'block';
+  } else {
+    nf.style.display = 'none';
+    const maxDelta = factors[0].delta;
+    factors.forEach(f => {
+      const pct = Math.round(f.delta / maxDelta * 100);
+      fl.innerHTML += `
+        <div class="factor-row">
+          <div class="factor-left">
+            <div class="factor-name">${f.label}</div>
+            <div class="factor-cat">${f.category}</div>
+          </div>
+          <div class="factor-bar-wrap">
+            <div class="factor-track"><div class="factor-fill" style="width:${pct}%"></div></div>
+            <div class="factor-delta">+${f.delta} yrs</div>
+          </div>
+        </div>`;
+    });
+  }
+
+  // Input summary
+  const summaryItems = [
+    ['Age', `${data.age} years`],
+    ['Sex', data.gender.charAt(0).toUpperCase()+data.gender.slice(1)],
+    ['BMI', data.bmi],
+    ['Smoking', data.smoking.replace('_',' ')],
+    ['Exercise', data.exercise],
+    ['Diet', data.diet],
+    ['Stress', data.stress.replace('_',' ')],
+    ['Sleep', data.sleep.replace(/_/g,' ')],
+    ['Blood Pressure', `${data.systolic_bp} mmHg`],
+    ['Cholesterol', `${data.cholesterol} mg/dL`],
+    ['Blood Sugar', `${data.blood_sugar} mg/dL`],
+    ['Conditions', [data.diabetes?'Diabetes':'', data.heart_disease?'Heart Dis.':'', data.hypertension?'Hypertension':''].filter(Boolean).join(', ') || 'None'],
+  ];
+  const sg = document.getElementById('summary-grid');
+  sg.innerHTML = summaryItems.map(([k,v]) =>
+    `<div class="sum-cell"><div class="sk">${k}</div><div class="sv">${v}</div></div>`
+  ).join('');
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+</script>
+</body>
+</html>
